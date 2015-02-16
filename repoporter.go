@@ -15,11 +15,12 @@ import (
 	flag "github.com/ogier/pflag"
 )
 
-var Path *string
-var Buffer []string
-var Results []string
+var PathAnalyzed *string
+var gitFolders []string
 var Verbose *bool
+var pathWriteAsFile *string
 var ExpectedRepoOwner *string
+var Repos []Repo
 
 type Repo struct {
 	path     string
@@ -29,42 +30,48 @@ type Repo struct {
 	synced   bool
 }
 
-type RepoList struct {
-	count int
-	repo  []Repo
-}
-
 func (r *Repo) Print() {
-	fmt.Printf("path:%s; modified:%d; added:%d; deleted%d; synced:%v", r.path, r.modified, r.added, r.deleted, r.synced)
-}
-
-func (r *RepoList) Print() {
-	for _, repo := range r.repo {
-		repo.Print()
-	}
+	fmt.Printf("Keeping repo: %s; modified:%d; added:%d; deleted%d; synced:%v\n", r.path, r.modified, r.added, r.deleted, r.synced)
 }
 
 func main() {
-	HandleCommandlineArgs()
-	FindGitRepos(*Path)
-	if len(Buffer) > 0 {
-		for _, filepath := range Buffer {
-			InspectGitRepos(filepath, *ExpectedRepoOwner)
+	var results []string
+	handleCommandlineArgs()
+	findGitRepos(*PathAnalyzed)
+	if len(gitFolders) > 0 {
+		for _, filepath := range gitFolders {
+			gitRepoMatchesUser(filepath, *ExpectedRepoOwner)
+			if match, _ := gitRepoMatchesUser(filepath, *ExpectedRepoOwner); match == true {
+				results = append(results, filepath)
+			}
 		}
 	}
-	ResultsToStruct()
+	Repos = make([]Repo, 1)
+	Repos = resultsToStruct(results)
+	if *Verbose {
+		for _, repo := range Repos {
+			repo.Print()
+		}
+	}
+
+	// TODO: Remove hard coding
+	if *pathWriteAsFile != "" {
+		WriteAsFile(Repos, *pathWriteAsFile)
+	}
 }
 
-func ResultsToStruct(rep RepoList) {
+// resultsToStruct converts the repo list to struct
+func resultsToStruct(results []string) (repos []Repo) {
 	var mod, add, del int
 	var sync bool = false
-	if len(Results) > 0 {
-		for _, result := range Results {
+	if len(results) > 0 {
+		for _, result := range results {
 			mod, add, del = analyzeRepoStatus(result)
 			if mod == 0 && add == 0 && del == 0 {
 				sync = true
 			}
-			Output = append(Output, output{modified: mod, added: add, deleted: del, synced: sync})
+			pathNoTrailingGit := result[0 : len(result)-5]
+			repos = append(repos, Repo{path: pathNoTrailingGit, modified: mod, added: add, deleted: del, synced: sync})
 
 			mod = 0
 			add = 0
@@ -72,20 +79,22 @@ func ResultsToStruct(rep RepoList) {
 			sync = false
 		}
 	}
+	return repos
 }
 
-func HandleCommandlineArgs() error {
+func handleCommandlineArgs() error {
 	home, err := homedir.Dir()
 	if err != nil {
 		log.Fatal(err)
 	}
-	Path = flag.StringP("path", "p", home, "Directory to analyze")
-	*Path, err = homedir.Expand(*Path)
+	PathAnalyzed = flag.StringP("path", "p", home, "Directory to analyze")
+	*PathAnalyzed, err = homedir.Expand(*PathAnalyzed)
 	if err != nil {
 		log.Fatal(err)
 	}
 	ExpectedRepoOwner = flag.StringP("owner", "o", "", "Owner username of the repository")
 	Verbose = flag.BoolP("verbose", "v", false, "Print supplementary information")
+	pathWriteAsFile = flag.StringP("file", "f", "", "Output as file")
 	flag.Parse()
 
 	if *ExpectedRepoOwner == "" {
@@ -96,50 +105,60 @@ func HandleCommandlineArgs() error {
 	return nil
 }
 
-func WriteOut(filePath string, fileName string) {
-	f, err := os.Create(filepath.Join(filePath, fileName))
+// WriteAsFile outputs the struct of git repositories captured that match the username
+// selected and outputs it as a file
+func WriteAsFile(repos []Repo, filePath string) {
+	// TODO: Validate output type, and return proper output (csv, tab separated, etc)
+	separator := ","
+
+	f, err := os.Create(filePath)
 	if err != nil {
 		panic(err)
+	}
+
+	f.WriteString(fmt.Sprintf("%s %s %s %s %s %s %s %s %s\n", "path", separator, "added", separator, "deleted",
+		separator, "modified", separator, "synced"))
+	for _, repo := range repos {
+		f.WriteString(fmt.Sprintf("%s %s %v %s %v %s %v %s %v\n", repo.path, separator, repo.added, separator,
+			repo.deleted, separator, repo.modified, separator, repo.synced))
 	}
 	defer f.Close()
 }
 
-func FindGitRepos(d string) error {
-	filepath.Walk(d, WalkGitRepos)
+func findGitRepos(d string) error {
+	filepath.Walk(d, walkGitRepos)
 	return nil
 }
 
-func WalkGitRepos(filePath string, fileInfo os.FileInfo, err error) error {
+// WalkGitRepos enters each subdirectory of the selected director, and if it contains ".git" subdirectory, tags it as a git repository
+func walkGitRepos(filePath string, fileInfo os.FileInfo, err error) error {
 	if err != nil {
-		fmt.Println(err) // can't walk here,
-		return nil       // but continue walking elsewhere
+		// can't walk here, but continue walking elsewhere
+		fmt.Println(err)
+		return nil
 	}
 	if fileInfo.IsDir() && fileInfo.Name() == ".git" {
 		if *Verbose {
-			fmt.Println("Found repo: ", filePath)
+			fmt.Println("Found repo : ", filePath)
 		}
-		Buffer = append(Buffer, filePath)
+		gitFolders = append(gitFolders, filePath)
 		return nil
 	}
 	return nil
 }
 
-func InspectGitRepos(filePath string, repoOwner string) error {
+// gitRepoMatchesUser validates each .git directory to validate the owner of the repo. If it matches the username being checked it adds
+func gitRepoMatchesUser(filePath string, repoOwner string) (matched bool, e error) {
 	var search string
-	var match bool
 
 	gitConfigData, err := ioutil.ReadFile(filepath.Join(filePath, "config"))
 	if err != nil {
-		panic(err)
+		fmt.Println("Found .git folder not container a 'config' file:", filePath)
 	}
 	search = fmt.Sprintf("%s/%s", "url( *)?=( *)?https?://github.com", repoOwner)
 	re := regexp.MustCompile(search)
-	match = re.MatchString(string(gitConfigData))
-
-	if match {
-		Results = append(Results, filePath)
-	}
-	return nil
+	matched = re.MatchString(string(gitConfigData))
+	return matched, nil
 }
 
 func analyzeRepoStatus(filePath string) (mod int, add int, del int) {
