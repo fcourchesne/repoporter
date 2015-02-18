@@ -10,12 +10,15 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/go-homedir"
 	flag "github.com/ogier/pflag"
 )
 
 var PathAnalyzed *string
+var DaemonMode *bool
+var DaemonTimer *int
 var gitFolders []string
 var Verbose *bool
 var pathWriteAsFile *string
@@ -34,9 +37,35 @@ func (r *Repo) Print() {
 	fmt.Printf("Keeping repo: %s; modified:%d; added:%d; deleted%d; synced:%v\n", r.path, r.modified, r.added, r.deleted, r.synced)
 }
 
+// TODO: Use it
+type RepoList struct {
+	repos []Repo
+}
+
+// TODO: use it
+func (rl *RepoList) Print() {
+	for _, r := range rl.repos {
+		r.Print()
+	}
+}
+
 func main() {
-	var results []string
 	handleCommandlineArgs()
+	if *DaemonMode == true {
+		for {
+			time.Sleep(time.Duration(*DaemonTimer) * time.Second)
+			Process()
+		}
+	} else {
+		Process()
+		for _, r := range Repos {
+			r.Print()
+		}
+	}
+}
+
+func Process() error {
+	var results []string
 	findGitRepos(*PathAnalyzed)
 	if len(gitFolders) > 0 {
 		for _, filepath := range gitFolders {
@@ -58,6 +87,7 @@ func main() {
 	if *pathWriteAsFile != "" {
 		WriteAsFile(Repos, *pathWriteAsFile)
 	}
+	return nil
 }
 
 // resultsToStruct converts the repo list to struct
@@ -94,6 +124,8 @@ func handleCommandlineArgs() error {
 	}
 	ExpectedRepoOwner = flag.StringP("owner", "o", "", "Owner username of the repository")
 	Verbose = flag.BoolP("verbose", "v", false, "Print supplementary information")
+	DaemonMode = flag.BoolP("daemon", "d", false, "Run as a daemon")
+	DaemonTimer = flag.IntP("timer", "t", 10, "Update interval when ran as a daemon")
 	pathWriteAsFile = flag.StringP("file", "f", "", "Output as file")
 	flag.Parse()
 
@@ -134,15 +166,15 @@ func findGitRepos(d string) error {
 func walkGitRepos(filePath string, fileInfo os.FileInfo, err error) error {
 	if err != nil {
 		// can't walk here, but continue walking elsewhere
-		fmt.Println(err)
-		return nil
+		if *Verbose == true {
+			fmt.Println(err)
+		}
 	}
 	if fileInfo.IsDir() && fileInfo.Name() == ".git" {
 		if *Verbose {
 			fmt.Println("Found repo : ", filePath)
 		}
 		gitFolders = append(gitFolders, filePath)
-		return nil
 	}
 	return nil
 }
