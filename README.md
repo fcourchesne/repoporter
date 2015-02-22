@@ -7,11 +7,11 @@ Made with go, the goal of this program is to look through a directory ($HOME for
 # Status
 *Ongoing*
 
-	## Features to be implemented
-	- Create a daemon for arch/debian/etc.
+## Features to be implemented
+- Create a daemon for arch/debian/etc.
 
-	## Implemented
-	- Output result to console
-	- Output output result to conky
-	- Run as daemon
+## Implemented
+- Output result to console
+- Output output result to conky
+- Run as daemon
 
