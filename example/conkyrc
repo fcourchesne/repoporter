@@ -1,29 +1,31 @@
 # Conky settings #
 background no
-update_interval 60
+update_interval 3
 cpu_avg_samples 2
 net_avg_samples 2
-override_utf8_locale yes
+override_utf8_locale no
 double_buffer yes
-no_buffers yes
 text_buffer_size 2048
 
-# Window specifications #
-own_window yes
+alignment	bottom_left	
+gap_x			15
+gap_y			40
+own_window_colour       393939
+own_window_type         override
 own_window_transparent yes
-own_window_type normal
+own_window		yes
+own_window_type		desktop
 own_window_hints undecorated,below,sticky,skip_taskbar,skip_pager
+own_window_argb_visual yes
 
+border_width            0
+draw_shades             no
+draw_outline            no
+draw_borders            no
 border_inner_margin 0
 border_outer_margin 0
-border_width 2
 
-minimum_size  200
-maximum_width 400
-
-alignment bm
-gap_x -35
-gap_y 65
+minimum_size 500 100
 
 # Graphics settings #
 draw_shades no
@@ -34,15 +36,18 @@ draw_graph_borders no
 # Text settings #
 use_xft yes
 override_utf8_locale yes
-xftfont Sans :size=7
+xftfont DejaVu Sans Mono:size=9:style=bold
 xftalpha 0.8
 uppercase no
 
 # Colors settings #
-default_outline_color FAFAFA
-own_window_colour 171717
-default_color c4c4c4
+default_color 646D76
+color1 05F224 #add
+color2 FF1121 #rem
+color3 1B20E6 #mod
+color4 213141 #title
 
 TEXT
-${color cyan}My repos
-${color yellow}${exec cat ~/Programming/GO/src/github.com/fcourchesne/Repoporter/test.csv}
+${color4}${font DejaVu Sans Mono: size=12: style=bold}REPOSITORY CHANGES${font}
+# Query output every 10 sec
+${execpi  5 sh $HOME/.gitrepostatus.conky}
