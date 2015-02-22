@@ -54,12 +54,13 @@ func main() {
 	readCommandlineArgs()
 	if *DaemonMode == true {
 		for {
+			gitFolders = nil
 			Process()
-			time.Sleep(time.Duration(*DaemonTimer) * time.Second)
 			// Run conky output at a frequency
 			if *ConkyOutputPath != "" {
 				ConkyOutput(Repos, *ConkyOutputPath)
 			}
+			time.Sleep(time.Duration(*DaemonTimer) * time.Second)
 		}
 	} else if *ConkyOutputPath != "" {
 		// Run conky output once
@@ -92,7 +93,6 @@ func Process() error {
 			repo.Print()
 		}
 	}
-	// TODO: Remove hard coding
 	if *pathWriteAsFile != "" {
 		WriteAsFile(Repos, *pathWriteAsFile)
 	}
@@ -150,7 +150,6 @@ func readCommandlineArgs() error {
 // WriteAsFile outputs the struct of git repositories captured that match the username
 // selected and outputs it as a file
 func WriteAsFile(repos []Repo, filePath string) {
-	// TODO: Validate output type, and return proper output (csv, tab separated, etc)
 	separator := ","
 
 	f, err := os.Create(filePath)
@@ -167,14 +166,14 @@ func WriteAsFile(repos []Repo, filePath string) {
 	}
 }
 
-func ConkyOutput(repos []Repo, outPath string) {
+func ConkyOutput(repos []Repo, filePath string) {
 	prefixAdd := "+"
 	prefixDel := "-"
 	prefixMod := "~"
 	separator := " : "
 
 	var err error
-	outPath, err = homedir.Expand(outPath)
+	filePath, err = homedir.Expand(filePath)
 	if err != nil {
 		panic(err)
 	}
@@ -208,9 +207,16 @@ func ConkyOutput(repos []Repo, outPath string) {
 			fmt.Printf("Skipping the following synced repo: %v\n", r.path)
 		}
 	}
-	if err := ioutil.WriteFile(outPath, []byte(data), 0644); err != nil {
+
+	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0775)
+	if err != nil {
 		panic(err)
 	}
+	defer f.Close()
+	if f.WriteString(data); err != nil {
+		panic(err)
+	}
+	data = ""
 }
 
 func findGitRepos(d string) error {
@@ -252,7 +258,7 @@ func gitRepoMatchesUser(filePath string, repoOwner string) (matched bool, e erro
 func analyzeRepoStatus(filePath string) (mod int, add int, del int) {
 	reMod := regexp.MustCompile(` M|U \w*`)
 	reAdd := regexp.MustCompile(`\?\? \w*`)
-	reDel := regexp.MustCompile(` D \w*`)
+	reDel := regexp.MustCompile(` ?D \w*`)
 
 	filePath = strings.TrimRight(filePath, "/.git")
 

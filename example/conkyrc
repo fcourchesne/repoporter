@@ -1,8 +1,6 @@
 # Conky settings #
 background no
-update_interval 3
-cpu_avg_samples 2
-net_avg_samples 2
+update_interval 10
 override_utf8_locale no
 double_buffer yes
 text_buffer_size 2048
@@ -10,8 +8,6 @@ text_buffer_size 2048
 alignment	bottom_left	
 gap_x			15
 gap_y			40
-own_window_colour       393939
-own_window_type         override
 own_window_transparent yes
 own_window		yes
 own_window_type		desktop
@@ -22,23 +18,19 @@ border_width            0
 draw_shades             no
 draw_outline            no
 draw_borders            no
+draw_graph_borders no
 border_inner_margin 0
 border_outer_margin 0
 
 minimum_size 500 100
 
 # Graphics settings #
-draw_shades no
-draw_outline no
-draw_borders no
-draw_graph_borders no
 
 # Text settings #
 use_xft yes
 override_utf8_locale yes
 xftfont DejaVu Sans Mono:size=9:style=bold
-xftalpha 0.8
-uppercase no
+#xftalpha 0.8
 
 # Colors settings #
 default_color 646D76
