@@ -42,4 +42,4 @@ color4 213141 #title
 TEXT
 ${color4}${font DejaVu Sans Mono: size=12: style=bold}REPOSITORY CHANGES${font}
 # Query output every 10 sec
-${execpi  5 sh $HOME/.gitrepostatus.conky}
+${execpi  30 sh $HOME/.gitrepostatus.conky}

@@ -192,13 +192,21 @@ func ConkyOutput(repos []Repo, filePath string) {
 		if r.synced != true {
 			data += fmt.Sprintf("echo '${font}")
 			if r.added != 0 {
-				data += fmt.Sprintf("${color1}%s%v", prefixAdd, r.added)
+				data += fmt.Sprintf("${color1}%s%v ", prefixAdd, r.added)
+			} else {
+				data += "   "
 			}
+
 			if r.deleted != 0 {
-				data += fmt.Sprintf("${color2}%s%v", prefixDel, r.deleted)
+				data += fmt.Sprintf("${color2}%s%v ", prefixDel, r.deleted)
+			} else {
+				data += "   "
 			}
+
 			if r.modified != 0 {
-				data += fmt.Sprintf("${color3}%s%v", prefixMod, r.modified)
+				data += fmt.Sprintf("${color3}%s%v ", prefixMod, r.modified)
+			} else {
+				data += "   "
 			}
 
 			data += fmt.Sprintf("${color}%s${font DejaVu Sans Mono: size=9:style=book}%v", separator, r.path)
