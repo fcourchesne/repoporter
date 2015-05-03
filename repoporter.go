@@ -1,5 +1,8 @@
 package main
 
+// TODO: Make the font size for conky output adjustable through argument or template
+// TODO: Add an option to kill daemon (communicate with it ?)
+
 import (
 	"errors"
 	"fmt"
@@ -16,15 +19,17 @@ import (
 	flag "github.com/ogier/pflag"
 )
 
-var PathAnalyzed *string
-var DaemonMode *bool
-var DaemonTimer *int
-var gitFolders []string
-var Verbose *bool
-var pathWriteAsFile *string
-var ExpectedRepoOwner *string
-var ConkyOutputPath *string
-var Repos []Repo
+var (
+	PathAnalyzed      *string
+	DaemonMode        *bool
+	DaemonTimer       *int
+	gitFolders        []string
+	Verbose           *bool
+	pathWriteAsFile   *string
+	ExpectedRepoOwner *string
+	ConkyOutputPath   *string
+	Repos             []Repo
+)
 
 type Repo struct {
 	path     string
@@ -209,7 +214,7 @@ func ConkyOutput(repos []Repo, filePath string) {
 				data += "   "
 			}
 
-			data += fmt.Sprintf("${color}%s${font DejaVu Sans Mono: size=9:style=book}%v", separator, r.path)
+			data += fmt.Sprintf("${color}%s${font DejaVu Sans Mono: size=12:style=book}%v", separator, r.path)
 			data += fmt.Sprintf("${color}${font}'\n")
 		} else {
 			fmt.Printf("Skipping the following synced repo: %v\n", r.path)
