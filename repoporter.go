@@ -139,7 +139,7 @@ func readCommandlineArgs() error {
 	ExpectedRepoOwner = flag.StringP("owner", "o", "", "Owner username of the repository")
 	Verbose = flag.BoolP("verbose", "v", false, "Print supplementary information")
 	DaemonMode = flag.BoolP("daemon", "d", false, "Run as a daemon")
-	DaemonTimer = flag.IntP("timer", "t", 10, "Update interval when ran as a daemon")
+	DaemonTimer = flag.IntP("timer", "t", 10, "Update interval (seconds) when ran as a daemon")
 	pathWriteAsFile = flag.StringP("file", "f", "", "Output as file")
 	ConkyOutputPath = flag.StringP("conky", "c", "", "Location of conky template")
 	flag.Parse()
